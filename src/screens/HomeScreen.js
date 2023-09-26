@@ -1,21 +1,75 @@
 import { View, Text ,Image, ScrollView,TouchableOpacity} from 'react-native'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import AppNavigation from '../navigation'
 import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
 import tw from 'twrnc';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Features from '../components/Features';
 import { dummyMessages } from '../constants';
+import Voice from '@react-native-community/voice';
 export default function HomeScreen() {
     const [messages,setMessages]=useState(dummyMessages)
     const[recording,setRecording]=useState(false );
     const [speaking,setSpeaking]=useState(true);
-    const clear=()=>{
-        setMessages([]);
-    }
+    const[result,setResult]=useState('');
     const stopSpeaking=()=>{
         setSpeaking(false);
     }
+    const speechStartHandler = e => {
+        console.log('speech start event', e);
+      };
+      const speechEndHandler = e => {
+        setRecording(false);
+        console.log('speech stop event', e);
+      };
+      const speechResultsHandler = e => {
+        console.log('speech event: ',e);
+        const text = e.value[0];
+        setResult(text);
+        
+      };
+      const speechErrorHandler = e=>{
+        console.log('speech error: ',e);
+      }
+      const startRecording = async () => {
+        setRecording(true);
+        //Tts.stop(); 
+        try {
+          await Voice.start('en-GB'); // en-US
+    
+        } catch (error) {
+          console.log('error', error);
+        }
+      };
+      const stopRecording = async () => {
+        
+        try {
+          await Voice.stop();
+          setRecording(false);
+          //fetchResponse();
+        } catch (error) {
+          console.log('error', error);
+        }
+      };
+      const clear = () => {
+        Tts.stop();
+        setSpeaking(false);
+        setLoading(false);
+        setMessages([]);
+      };
+    
+    
+    useEffect(()=>{
+    Voice.onSpeechStart = speechStartHandler;
+    Voice.onSpeechEnd = speechEndHandler;
+    Voice.onSpeechResults = speechResultsHandler;
+    Voice.onSpeechError = speechErrorHandler;
+    return ()=>{
+        //destroy Handlers
+        Voice.destroy().then(Voice.removeAllListeners)
+    }
+    },[])
+    console.log('result',result);
   return (
     <View style={tw`flex-1 bg-white`}>
       <SafeAreaView style={tw`flex-1 flex mx-5`}>
@@ -107,14 +161,15 @@ export default function HomeScreen() {
         <View style={tw`flex justify-center items-center`}>
             {
             recording ? (
-                <TouchableOpacity>
+                <TouchableOpacity onPress={stopSpeaking}>
                 < Image
                 style={[{ width: hp(10), height: hp(10) }, tw`rounded-full`]}
                 source={require('../../assets/images/voiceLoading.gif')}
                 />
             </TouchableOpacity>
             ):(
-                <TouchableOpacity>
+                // rec start button
+                <TouchableOpacity onPress={startRecording}>
                 < Image
                 style={[{ width: hp(10), height: hp(10) }, tw`rounded-full`]}
                 source={require('../../assets/images/recordingIcon.png')}
